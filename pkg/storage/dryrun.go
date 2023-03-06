@@ -2,7 +2,9 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 
 	"github.com/PrasadG193/cbt-svc/pkg/apis/cbt/v1alpha1"
 	cbtv1alpha1 "github.com/PrasadG193/cbt-svc/pkg/apis/cbt/v1alpha1"
@@ -65,12 +67,25 @@ func (c *cbt) Create(
 
 	reqID := uuid.New().String()
 	token := NewToken(reqID)
+	ca, err := fetchCABundle()
+	if err != nil {
+		return nil, err
+	}
 	out.Status = v1alpha1.VolumeSnapshotDeltaTokenStatus{
-		Token: token.Token,
-		URL:   token.URL,
+		Token:    token.Token,
+		URL:      token.URL,
+		CABundle: ca,
 	}
 
 	klog.Infof("created VolumeSnapshotDeltaToken: %s", out.GetName())
 
 	return out, nil
+}
+
+func fetchCABundle() ([]byte, error) {
+	cacertFile := os.Getenv("CBT_SERVER_CA_BUNDLE")
+	if cacertFile == "" {
+		return nil, errors.New("Failed to read CA Bundle from " + cacertFile)
+	}
+	return os.ReadFile(cacertFile)
 }

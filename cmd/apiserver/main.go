@@ -22,9 +22,9 @@ import (
 	"sigs.k8s.io/apiserver-runtime/pkg/builder"
 
 	// +kubebuilder:scaffold:resource-imports
-	"github.com/PrasadG193/cbt-svc/pkg/apis/cbt/v1alpha1"
-	cbtv1alpha1 "github.com/PrasadG193/cbt-svc/pkg/apis/cbt/v1alpha1"
-	cbtstorage "github.com/PrasadG193/cbt-svc/pkg/storage"
+	"github.com/PrasadG193/cbt-datapath/pkg/apis/cbt/v1alpha1"
+	cbtv1alpha1 "github.com/PrasadG193/cbt-datapath/pkg/apis/cbt/v1alpha1"
+	cbtstorage "github.com/PrasadG193/cbt-datapath/pkg/storage"
 )
 
 func main() {

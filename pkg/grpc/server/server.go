@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	pb "github.com/PrasadG193/cbt-svc/pkg/grpc"
+	pb "github.com/PrasadG193/cbt-datapath/pkg/grpc"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )

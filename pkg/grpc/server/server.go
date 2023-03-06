@@ -8,6 +8,7 @@ import (
 	"time"
 
 	pb "github.com/PrasadG193/cbt-datapath/pkg/grpc"
+	"github.com/PrasadG193/cbt-datapath/pkg/storage"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -17,7 +18,7 @@ var blockDeltas []*pb.ChangedBlockDelta
 func init() {
 	noOfBlocks, err := strconv.Atoi(os.Getenv(NumberOfBlocksKey))
 	if err != nil {
-		return err
+		return
 	}
 	if noOfBlocks == 0 {
 		noOfBlocks = 5
@@ -56,7 +57,7 @@ func (s *Server) ListVolumeSnapshotDeltas(
 		volumeSizeBytes = uint64(1073741824)
 	)
 
-	if !validToken(req.Token) {
+	if !storage.ValidToken(req.Token) {
 		return nil, errors.New("Invalid token")
 	}
 

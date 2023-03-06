@@ -9,12 +9,12 @@ type Token struct {
 func NewToken(reqID string) Token {
 	// TODO: Implement token generation algorithm
 	return Token{
-		URL:   "cbt-datapath:9000",
+		URL:   "cbt-datapath.cbt-svc.svc:80",
 		Token: []byte(reqID),
 	}
 }
 
-func validToken(token string) bool {
+func ValidToken(token string) bool {
 	// TODO: Implement token validation algorithm
 	return true
 }

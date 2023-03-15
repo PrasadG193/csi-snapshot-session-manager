@@ -1,10 +1,10 @@
-FROM golang:1.17 as builder
+FROM golang:1.19 as builder
 WORKDIR /workspace
 COPY go.mod go.mod
 COPY go.sum go.sum
-COPY vendor vendor
 COPY pkg pkg
 COPY ./cmd/mock/sample-driver/main.go main.go
+RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o grpc-server main.go
 
 FROM gcr.io/distroless/static:nonroot

@@ -1,0 +1,80 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.11.1
+  creationTimestamp: null
+  name: volumesnapshotdeltatokens.cbt.storage.k8s.io
+spec:
+  group: cbt.storage.k8s.io
+  names:
+    kind: VolumeSnapshotDeltaToken
+    listKind: VolumeSnapshotDeltaTokenList
+    plural: volumesnapshotdeltatokens
+    singular: volumesnapshotdeltatoken
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: VolumeSnapshotDeltaToken is the Schema for the volumesnapshotdeltatokens
+          API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VolumeSnapshotDeltaTokenSpec defines the desired state of
+              VolumeSnapshotDeltaToken
+            properties:
+              baseVolumeSnapshotName:
+                description: The name of the base CSI volume snapshot to use for comparison.
+                  If not specified, return all changed blocks.
+                type: string
+              targetVolumeSnapshotName:
+                description: The name of the target CSI volume snapshot to use for
+                  comparison. Required.
+                type: string
+            required:
+            - targetVolumeSnapshotName
+            type: object
+          status:
+            description: VolumeSnapshotDeltaTokenStatus defines the observed state
+              of VolumeSnapshotDeltaToken
+            properties:
+              cabundle:
+                description: CABundle client side CA used for server validation
+                format: byte
+                type: string
+              error:
+                description: Captures any error encountered.
+                type: string
+              sessionState:
+                description: State of the VolumeSnapshotDeltaToken. One of the "Ready",
+                  "Pending", "Failed"
+                type: string
+              token:
+                description: Token cbt server token for validation
+                format: byte
+                type: string
+              url:
+                description: URL to get CBT metadata from
+                type: string
+            required:
+            - sessionState
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

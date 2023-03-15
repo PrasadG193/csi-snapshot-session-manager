@@ -2,13 +2,11 @@ package server
 
 import (
 	"context"
-	"errors"
 	"os"
 	"strconv"
 	"time"
 
 	pb "github.com/PrasadG193/cbt-datapath/pkg/grpc"
-	"github.com/PrasadG193/cbt-datapath/pkg/storage"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -57,9 +55,7 @@ func (s *Server) ListVolumeSnapshotDeltas(
 		volumeSizeBytes = uint64(1073741824)
 	)
 
-	if !storage.ValidToken(req.Token) {
-		return nil, errors.New("Invalid token")
-	}
+	// TODO: Validate token
 
 	return &pb.VolumeSnapshotDeltaResponse{
 		BlockDelta: &pb.BlockVolumeSnapshotDelta{

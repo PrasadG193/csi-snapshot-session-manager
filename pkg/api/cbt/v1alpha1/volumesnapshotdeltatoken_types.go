@@ -48,13 +48,16 @@ type VolumeSnapshotDeltaTokenStatus struct {
 	Error string `json:"error,omitempty"`
 
 	// CABundle client side CA used for server validation
-	CABundle []byte `json:"cabundle,omitempty"`
+	CACert []byte `json:"caCert,omitempty"`
 
-	// Token cbt server token for validation
-	Token []byte `json:"token,omitempty"`
+	// SessionToken cbt server token for validation
+	SessionToken []byte `json:"sessionToken,omitempty"`
 
-	// URL to get CBT metadata from
-	URL string `json:"url,omitempty"`
+	// SessionURL to get CBT metadata from
+	SessionURL string `json:"sessionURL,omitempty"`
+
+	// ExpiryTime
+	ExpiryTime *metav1.Timestamp `json:"expiryTime,omitempty"`
 }
 
 //+kubebuilder:object:root=true

@@ -18,7 +18,6 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 
@@ -31,8 +30,9 @@ import (
 
 	cbtv1alpha1 "github.com/PrasadG193/cbt-datapath/pkg/api/cbt/v1alpha1"
 	"github.com/go-logr/logr"
-	"github.com/google/uuid"
 )
+
+const CSIEndpointEnvName = "CSI_ENDPOINT"
 
 // VolumeSnapshotDeltaTokenReconciler reconciles a VolumeSnapshotDeltaToken object
 type VolumeSnapshotDeltaTokenReconciler struct {
@@ -90,20 +90,25 @@ func (r *VolumeSnapshotDeltaTokenReconciler) handleEvents(
 		return nil
 	}
 
-	reqID := uuid.New().String()
-	token := NewToken(reqID)
+	//reqID := uuid.New().String()
+	//token := NewToken(reqID)
 	//ca, err := fetchCABundle()
-	ca := "xxxxxxxxx"
+	//ca := "xxxxxxxxx"
 	//if err != nil {
 	//	return nil, err
 	//}
-	obj.Status = cbtv1alpha1.VolumeSnapshotDeltaTokenStatus{
-		SessionState: cbtv1alpha1.SessionStateTypeReady,
-		Token:        token.Token,
-		URL:          token.URL,
-		CABundle:     []byte(ca),
+	//obj.Status = cbtv1alpha1.VolumeSnapshotDeltaTokenStatus{
+	//	SessionState: cbtv1alpha1.SessionStateTypeReady,
+	//	SessionToken:        token.Token,
+	//	SessionURL:          token.URL,
+	//	CABundle:     []byte(ca),
+	//}
+	status, err := fetchSessionToken(ctx, obj.Spec.BaseVolumeSnapshotName, obj.Spec.TargetVolumeSnapshotName)
+	if err != nil {
+		return err
 	}
-	err := r.Status().Update(ctx, obj)
+	obj.Status = status
+	err = r.Status().Update(ctx, obj)
 	if err != nil {
 		return err
 	}
@@ -112,10 +117,28 @@ func (r *VolumeSnapshotDeltaTokenReconciler) handleEvents(
 	return nil
 }
 
-func fetchCABundle() ([]byte, error) {
-	cacertFile := os.Getenv("CBT_SERVER_CA_BUNDLE")
-	if cacertFile == "" {
-		return nil, errors.New("Failed to read CA Bundle from " + cacertFile)
+//func fetchCABundle() ([]byte, error) {
+//	cacertFile := os.Getenv("CBT_SERVER_CA_BUNDLE")
+//	if cacertFile == "" {
+//		return nil, errors.New("Failed to read CA Bundle from " + cacertFile)
+//	}
+//	return os.ReadFile(cacertFile)
+//}
+
+// TODO: Set the correct state of the request - InProgress,
+// SessionResponse, session state and error
+func fetchSessionToken(ctx context.Context, baseSnapName, targetSnapName string) (cbtv1alpha1.VolumeSnapshotDeltaTokenStatus, error) {
+	csiEndpoint := os.Getenv(CSIEndpointEnvName)
+	fmt.Println("Invoking gRPC on", csiEndpoint)
+	client := NewCSIClient(csiEndpoint)
+	tokenResp, err := client.FetchSessionToken(ctx, baseSnapName, targetSnapName)
+	if err != nil {
+		return cbtv1alpha1.VolumeSnapshotDeltaTokenStatus{}, err
 	}
-	return os.ReadFile(cacertFile)
+	return cbtv1alpha1.VolumeSnapshotDeltaTokenStatus{
+		SessionState: cbtv1alpha1.SessionStateTypeReady,
+		SessionToken: tokenResp.SessionToken,
+		SessionURL:   tokenResp.SessionUrl,
+		CACert:       []byte(tokenResp.CaCert),
+	}, nil
 }

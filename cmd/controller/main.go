@@ -95,6 +95,10 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "VolumeSnapshotDeltaToken")
 		os.Exit(1)
 	}
+	if err = (&cbtv1alpha1.VolumeSnapshotDeltaToken{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "VolumeSnapshotDeltaToken")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

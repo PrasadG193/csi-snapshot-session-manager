@@ -5,8 +5,8 @@
 domain: storage.k8s.io
 layout:
 - go.kubebuilder.io/v4-alpha
-projectName: cbt-kubebuilder
-repo: github.com/PrasadG193/cbt-kubebuilder
+projectName: cbt-datapath
+repo: github.com/PrasadG193/cbt-datapath
 resources:
 - api:
     crdVersion: v1
@@ -15,6 +15,9 @@ resources:
   domain: storage.k8s.io
   group: cbt
   kind: VolumeSnapshotDeltaToken
-  path: github.com/PrasadG193/cbt-kubebuilder/api/v1alpha1
+  path: github.com/PrasadG193/cbt-datapath/pkg/api/cbt/v1alpha1
   version: v1alpha1
+  webhooks:
+    validation: true
+    webhookVersion: v1
 version: "3"

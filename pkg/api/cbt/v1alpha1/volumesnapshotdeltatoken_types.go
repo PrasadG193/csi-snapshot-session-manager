@@ -61,7 +61,6 @@ type VolumeSnapshotDeltaTokenStatus struct {
 }
 
 //+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 
 // VolumeSnapshotDeltaToken is the Schema for the volumesnapshotdeltatokens API
 type VolumeSnapshotDeltaToken struct {

@@ -88,15 +88,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.VolumeSnapshotDeltaTokenReconciler{
+	if err = (&controller.CSISnapshotSessionAccessReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "VolumeSnapshotDeltaToken")
+		setupLog.Error(err, "unable to create controller", "controller", "CSISnapshotSessionAccess")
 		os.Exit(1)
 	}
-	if err = (&cbtv1alpha1.VolumeSnapshotDeltaToken{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "VolumeSnapshotDeltaToken")
+	if err = (&cbtv1alpha1.CSISnapshotSessionAccess{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "CSISnapshotSessionAccess")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

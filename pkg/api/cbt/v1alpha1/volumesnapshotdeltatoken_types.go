@@ -28,8 +28,8 @@ const (
 	SessionStateTypeFailed  = "Failed"
 )
 
-// VolumeSnapshotDeltaTokenSpec defines the desired state of VolumeSnapshotDeltaToken
-type VolumeSnapshotDeltaTokenSpec struct {
+// CSISnapshotSessionAccessSpec defines the desired state of CSISnapshotSessionAccess
+type CSISnapshotSessionAccessSpec struct {
 	// The name of the base CSI volume snapshot to use for comparison.
 	// If not specified, return all changed blocks.
 	// +optional
@@ -40,9 +40,9 @@ type VolumeSnapshotDeltaTokenSpec struct {
 	TargetVolumeSnapshotName string `json:"targetVolumeSnapshotName"`
 }
 
-// VolumeSnapshotDeltaTokenStatus defines the observed state of VolumeSnapshotDeltaToken
-type VolumeSnapshotDeltaTokenStatus struct {
-	// State of the VolumeSnapshotDeltaToken. One of the "Ready", "Pending", "Failed"
+// CSISnapshotSessionAccessStatus defines the observed state of CSISnapshotSessionAccess
+type CSISnapshotSessionAccessStatus struct {
+	// State of the CSISnapshotSessionAccess. One of the "Ready", "Pending", "Failed"
 	SessionState SessionStateType `json:"sessionState"`
 	// Captures any error encountered.
 	Error string `json:"error,omitempty"`
@@ -62,24 +62,24 @@ type VolumeSnapshotDeltaTokenStatus struct {
 
 //+kubebuilder:object:root=true
 
-// VolumeSnapshotDeltaToken is the Schema for the volumesnapshotdeltatokens API
-type VolumeSnapshotDeltaToken struct {
+// CSISnapshotSessionAccess is the Schema for the volumesnapshotdeltatokens API
+type CSISnapshotSessionAccess struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VolumeSnapshotDeltaTokenSpec   `json:"spec,omitempty"`
-	Status VolumeSnapshotDeltaTokenStatus `json:"status,omitempty"`
+	Spec   CSISnapshotSessionAccessSpec   `json:"spec,omitempty"`
+	Status CSISnapshotSessionAccessStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// VolumeSnapshotDeltaTokenList contains a list of VolumeSnapshotDeltaToken
-type VolumeSnapshotDeltaTokenList struct {
+// CSISnapshotSessionAccessList contains a list of CSISnapshotSessionAccess
+type CSISnapshotSessionAccessList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []VolumeSnapshotDeltaToken `json:"items"`
+	Items           []CSISnapshotSessionAccess `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&VolumeSnapshotDeltaToken{}, &VolumeSnapshotDeltaTokenList{})
+	SchemeBuilder.Register(&CSISnapshotSessionAccess{}, &CSISnapshotSessionAccessList{})
 }

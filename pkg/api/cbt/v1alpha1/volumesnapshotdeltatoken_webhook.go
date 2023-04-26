@@ -36,9 +36,9 @@ import (
 // log is for logging in this package.
 var volumesnapshotdeltatokenlog = logf.Log.WithName("volumesnapshotdeltatoken-resource")
 
-func (r *VolumeSnapshotDeltaToken) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (r *CSISnapshotSessionAccess) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	volumesnapshotdeltatokenlog.Info("Registering Webhook handler.")
-	validator := &VolumeSnapshotDeltaTokenValidator{}
+	validator := &CSISnapshotSessionAccessValidator{}
 	whServer := mgr.GetWebhookServer()
 	// TODO: Declare as const
 	whServer.Register("/validate-cbt-storage-k8s-io-v1alpha1-volumesnapshotdeltatoken", &webhook.Admission{Handler: validator})
@@ -62,19 +62,19 @@ func (r *VolumeSnapshotDeltaToken) SetupWebhookWithManager(mgr ctrl.Manager) err
 	return nil
 }
 
-var _ admission.Handler = &VolumeSnapshotDeltaTokenValidator{}
+var _ admission.Handler = &CSISnapshotSessionAccessValidator{}
 
 // +kubebuilder:webhook:path=/validate-cbt-storage-k8s-io-v1alpha1-volumesnapshotdeltatoken,mutating=true,failurePolicy=fail,sideEffects=None,groups=cbt.storage.k8s.io,resources=volumesnapshotdeltatokens,verbs=create;update,versions=v1alpha1,name=vvolumesnapshotdeltatoken.kb.io,admissionReviewVersions=v1
 // +kubebuilder:object:generate=false
-type VolumeSnapshotDeltaTokenValidator struct {
+type CSISnapshotSessionAccessValidator struct {
 	decoder *admission.Decoder
 	cli     kubernetes.Interface
 }
 
-func (v *VolumeSnapshotDeltaTokenValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
+func (v *CSISnapshotSessionAccessValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	fmt.Printf("USERINFO::: %#v\n", req.UserInfo)
 	// Do the validation
-	vsd := &VolumeSnapshotDeltaToken{}
+	vsd := &CSISnapshotSessionAccess{}
 	err := v.decoder.Decode(req, vsd)
 	if err != nil {
 		volumesnapshotdeltatokenlog.Error(err, "Failed to decode request object")

@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,8 +35,8 @@ import (
 
 const CSIEndpointEnvName = "CSI_ENDPOINT"
 
-// VolumeSnapshotDeltaTokenReconciler reconciles a VolumeSnapshotDeltaToken object
-type VolumeSnapshotDeltaTokenReconciler struct {
+// CSISnapshotSessionAccessReconciler reconciles a CSISnapshotSessionAccess object
+type CSISnapshotSessionAccessReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
@@ -47,16 +48,16 @@ type VolumeSnapshotDeltaTokenReconciler struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the VolumeSnapshotDeltaToken object against the actual cluster state, and then
+// the CSISnapshotSessionAccess object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
-func (r *VolumeSnapshotDeltaTokenReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *CSISnapshotSessionAccessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	vsdt := &cbtv1alpha1.VolumeSnapshotDeltaToken{}
+	vsdt := &cbtv1alpha1.CSISnapshotSessionAccess{}
 	err := r.Get(ctx, req.NamespacedName, vsdt)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -71,16 +72,16 @@ func (r *VolumeSnapshotDeltaTokenReconciler) Reconcile(ctx context.Context, req 
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *VolumeSnapshotDeltaTokenReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *CSISnapshotSessionAccessReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&cbtv1alpha1.VolumeSnapshotDeltaToken{}).
+		For(&cbtv1alpha1.CSISnapshotSessionAccess{}).
 		Complete(r)
 }
 
 // Create creates a new version of a resource.
-func (r *VolumeSnapshotDeltaTokenReconciler) handleEvents(
+func (r *CSISnapshotSessionAccessReconciler) handleEvents(
 	ctx context.Context,
-	obj *cbtv1alpha1.VolumeSnapshotDeltaToken,
+	obj *cbtv1alpha1.CSISnapshotSessionAccess,
 	logger logr.Logger) error {
 
 	//casted.SetCreationTimestamp(metav1.Now())
@@ -97,7 +98,7 @@ func (r *VolumeSnapshotDeltaTokenReconciler) handleEvents(
 	//if err != nil {
 	//	return nil, err
 	//}
-	//obj.Status = cbtv1alpha1.VolumeSnapshotDeltaTokenStatus{
+	//obj.Status = cbtv1alpha1.CSISnapshotSessionAccessStatus{
 	//	SessionState: cbtv1alpha1.SessionStateTypeReady,
 	//	SessionToken:        token.Token,
 	//	SessionURL:          token.URL,
@@ -112,7 +113,7 @@ func (r *VolumeSnapshotDeltaTokenReconciler) handleEvents(
 	if err != nil {
 		return err
 	}
-	logger.Info(fmt.Sprintf("created VolumeSnapshotDeltaToken: %s", obj.GetName()))
+	logger.Info(fmt.Sprintf("created CSISnapshotSessionAccess: %s", obj.GetName()))
 
 	return nil
 }
@@ -127,15 +128,17 @@ func (r *VolumeSnapshotDeltaTokenReconciler) handleEvents(
 
 // TODO: Set the correct state of the request - InProgress,
 // SessionResponse, session state and error
-func fetchSessionToken(ctx context.Context, baseSnapName, targetSnapName string) (cbtv1alpha1.VolumeSnapshotDeltaTokenStatus, error) {
+func fetchSessionToken(ctx context.Context, baseSnapName, targetSnapName string) (cbtv1alpha1.CSISnapshotSessionAccessStatus, error) {
+	// FIXME Add sleep of 10s to mock CBT session creation delay
+	time.Sleep(10 * time.Second)
 	csiEndpoint := os.Getenv(CSIEndpointEnvName)
 	fmt.Println("Invoking gRPC on", csiEndpoint)
 	client := NewCSIClient(csiEndpoint)
 	tokenResp, err := client.FetchSessionToken(ctx, baseSnapName, targetSnapName)
 	if err != nil {
-		return cbtv1alpha1.VolumeSnapshotDeltaTokenStatus{}, err
+		return cbtv1alpha1.CSISnapshotSessionAccessStatus{}, err
 	}
-	return cbtv1alpha1.VolumeSnapshotDeltaTokenStatus{
+	return cbtv1alpha1.CSISnapshotSessionAccessStatus{
 		SessionState: cbtv1alpha1.SessionStateTypeReady,
 		SessionToken: tokenResp.SessionToken,
 		SessionURL:   tokenResp.SessionUrl,

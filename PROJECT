@@ -14,7 +14,7 @@ resources:
   controller: true
   domain: storage.k8s.io
   group: cbt
-  kind: VolumeSnapshotDeltaToken
+  kind: CSISnapshotSessionAccess
   path: github.com/PrasadG193/cbt-datapath/pkg/api/cbt/v1alpha1
   version: v1alpha1
   webhooks:

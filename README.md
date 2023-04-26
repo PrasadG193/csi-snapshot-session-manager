@@ -10,19 +10,19 @@ TODO: Add deploy steps
 
 #### Get Token
 
-The CBT token can be generated with `VolumeSnapshotDeltaToken` APIs either using kubectl client or client-go sdks
+The CBT token can be generated with `CSISnapshotSessionAccess` APIs either using kubectl client or client-go sdks
 
 ```bash
 cat <<EOF | kubectl create -oyaml -f -                                                                                                                    
 apiVersion: cbt.storage.k8s.io/v1alpha1
-kind: VolumeSnapshotDeltaToken
+kind: CSISnapshotSessionAccess
 metadata:
   name: test
 spec:
   baseVolumeSnapshotName: vs-00                                                               
   targetVolumeSnapshotName: vs-01                                                                                                                                                            mode: block
 EOF                                                                                                                                                                                        apiVersion: cbt.storage.k8s.io/v1alpha1
-kind: VolumeSnapshotDeltaToken
+kind: CSISnapshotSessionAccess
 metadata:                           
   creationTimestamp: "2023-03-06T17:26:52Z"
   name: test

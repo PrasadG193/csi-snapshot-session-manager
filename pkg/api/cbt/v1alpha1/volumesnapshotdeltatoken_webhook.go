@@ -23,6 +23,8 @@ import (
 	"net/http"
 
 	admissionv1 "k8s.io/api/admission/v1"
+	authnv1 "k8s.io/api/authentication/v1"
+	authzv1 "k8s.io/api/authorization/v1"
 	v1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -64,11 +66,70 @@ func (r *CSISnapshotSessionAccess) SetupWebhookWithManager(mgr ctrl.Manager) err
 
 var _ admission.Handler = &CSISnapshotSessionAccessValidator{}
 
-// +kubebuilder:webhook:path=/validate-cbt-storage-k8s-io-v1alpha1-volumesnapshotdeltatoken,mutating=true,failurePolicy=fail,sideEffects=None,groups=cbt.storage.k8s.io,resources=volumesnapshotdeltatokens,verbs=create;update,versions=v1alpha1,name=vvolumesnapshotdeltatoken.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-cbt-storage-k8s-io-v1alpha1-volumesnapshotdeltatoken,mutating=true,failurePolicy=fail,sideEffects=None,groups=cbt.storage.k8s.io,resources=csisnapshotsessionaccesses,verbs=create;update,versions=v1alpha1,name=vvolumesnapshotdeltatoken.kb.io,admissionReviewVersions=v1
 // +kubebuilder:object:generate=false
 type CSISnapshotSessionAccessValidator struct {
 	decoder *admission.Decoder
 	cli     kubernetes.Interface
+}
+
+func (v *CSISnapshotSessionAccessValidator) authorizeUser(ctx context.Context, req admission.Request) (bool, error) {
+	extra := make(map[string]v1.ExtraValue, len(req.UserInfo.Extra))
+	for u, e := range req.UserInfo.Extra {
+		extra[u] = v1.ExtraValue(e)
+	}
+	allowedVS, err := v.canAccessVolumeSnapshots(ctx, req.Namespace, req.UserInfo, extra)
+	if err != nil {
+		return false, err
+	}
+	allowedPVC, err := v.canAccessPVC(ctx, req.Namespace, req.UserInfo, extra)
+	if err != nil {
+		return false, err
+	}
+	return allowedVS || allowedPVC, nil
+}
+
+func (v *CSISnapshotSessionAccessValidator) canAccessVolumeSnapshots(ctx context.Context, namespace string, userInfo authnv1.UserInfo, extraValues map[string]authzv1.ExtraValue) (bool, error) {
+	return v.subjectAccessReview(ctx, namespace, userInfo, extraValues, "get", metav1.GroupVersionResource{Group: "snapshot.storage.k8s.io", Version: "v1", Resource: "volumesnapshots"})
+}
+
+func (v *CSISnapshotSessionAccessValidator) canAccessPVC(ctx context.Context, namespace string, userInfo authnv1.UserInfo, extraValues map[string]authzv1.ExtraValue) (bool, error) {
+	return v.subjectAccessReview(ctx, namespace, userInfo, extraValues, "get", metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "persistentvolumeclaims"})
+}
+
+func (v *CSISnapshotSessionAccessValidator) subjectAccessReview(ctx context.Context, namespace string, userInfo authnv1.UserInfo, extraValues map[string]authzv1.ExtraValue, verb string, gvr metav1.GroupVersionResource) (bool, error) {
+	sar := &v1.SubjectAccessReview{
+		Spec: v1.SubjectAccessReviewSpec{
+			ResourceAttributes: &v1.ResourceAttributes{
+				Verb:      verb,
+				Namespace: namespace,
+				Group:     gvr.Group,
+				Version:   gvr.Version,
+				Resource:  gvr.Resource,
+			},
+			User:   userInfo.Username,
+			Groups: userInfo.Groups,
+			Extra:  extraValues,
+			UID:    userInfo.UID,
+		},
+	}
+	sarResp, err := v.cli.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		//return admission.Errored(http.StatusBadRequest, err)
+		return false, err
+	}
+	//sarJson, err := sarResp.Status.Marshal()
+	//fmt.Printf("debug: SAR Response:: %s %v\n", string(sarJson), err)
+	if !sarResp.Status.Allowed || sarResp.Status.Denied {
+		return false, nil
+		//return admission.Response{
+		//	AdmissionResponse: admissionv1.AdmissionResponse{
+		//		Allowed: false,
+		//		Result:  &metav1.Status{},
+		//	},
+		//}
+	}
+	return true, nil
 }
 
 func (v *CSISnapshotSessionAccessValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
@@ -89,27 +150,11 @@ func (v *CSISnapshotSessionAccessValidator) Handle(ctx context.Context, req admi
 	//}
 	//att :=
 	//fmt.Println(att)
-	extra := make(map[string]v1.ExtraValue, len(req.UserInfo.Extra))
-	for u, e := range req.UserInfo.Extra {
-		extra[u] = v1.ExtraValue(e)
-	}
-
-	sar := &v1.SubjectAccessReview{
-		Spec: v1.SubjectAccessReviewSpec{
-			ResourceAttributes: GetResourceAttributes(req.Namespace),
-			User:               req.UserInfo.Username,
-			Groups:             req.UserInfo.Groups,
-			Extra:              extra,
-			UID:                req.UserInfo.UID,
-		},
-	}
-	sarResp, err := v.cli.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	authz, err := v.authorizeUser(ctx, req)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
-	//sarJson, err := sarResp.Status.Marshal()
-	//fmt.Printf("debug: SAR Response:: %s %v\n", string(sarJson), err)
-	if !sarResp.Status.Allowed || sarResp.Status.Denied {
+	if !authz {
 		return admission.Response{
 			AdmissionResponse: admissionv1.AdmissionResponse{
 				Allowed: false,
@@ -129,37 +174,16 @@ func (v *CSISnapshotSessionAccessValidator) Handle(ctx context.Context, req admi
 	return patched
 }
 
-//// TODO: Find if there is better way to conver auth.UserInfo to user.Info
-//func userToInfo(userInfo v1.UserInfo) (user.Info, error) {
-//	//b, err := userInfo.Marshal()
-//	//if err != nil {
-//	//	return nil, err
-//	//}
-//	//ui := user.DefaultInfo{}
-//	//err = json.Unmarshal(b, &ui)
-//	//return &ui, err
-//	defInfo := &user.DefaultInfo{
-//		Name:   userInfo.Username,
-//		UID:    userInfo.UID,
-//		Groups: userInfo.Groups,
-//		Extra:  make(map[string]string),
+//func getResourceAttributes(namespace string) *v1.ResourceAttributes {
+//	apiVerb := "get"
+//	vsGroup := "snapshot.storage.k8s.io"
+//	vsVersion := "v1"
+//	vsResource := "volumesnapshots"
+//	return &v1.ResourceAttributes{
+//		Verb:      apiVerb,
+//		Namespace: namespace,
+//		Group:     vsGroup,
+//		Version:   vsVersion,
+//		Resource:  vsResource,
 //	}
-//	for k, v := range userInfo.Extra {
-//		defInfo.Extra[k] = string(v)
-//	}
-//	return defInfo, nil
 //}
-
-func GetResourceAttributes(namespace string) *v1.ResourceAttributes {
-	apiVerb := "get"
-	vsGroup := "snapshot.storage.k8s.io"
-	vsVersion := "v1"
-	vsResource := "volumesnapshots"
-	return &v1.ResourceAttributes{
-		Verb:      apiVerb,
-		Namespace: namespace,
-		Group:     vsGroup,
-		Version:   vsVersion,
-		Resource:  vsResource,
-	}
-}

@@ -18,7 +18,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: CSISnapshotSessionAccess is the Schema for the volumesnapshotdeltatokens
+        description: CSISnapshotSessionAccess is the Schema for the csisnapshotsessionaccesses
           API
         properties:
           apiVersion:
@@ -37,16 +37,11 @@ spec:
             description: CSISnapshotSessionAccessSpec defines the desired state of
               CSISnapshotSessionAccess
             properties:
-              baseVolumeSnapshotName:
-                description: The name of the base CSI volume snapshot to use for comparison.
-                  If not specified, return all changed blocks.
-                type: string
-              targetVolumeSnapshotName:
-                description: The name of the target CSI volume snapshot to use for
-                  comparison. Required.
-                type: string
-            required:
-            - targetVolumeSnapshotName
+              snapshots:
+                description: The list of snapshots to generate session for
+                items:
+                  type: string
+                type: array
             type: object
           status:
             description: CSISnapshotSessionAccessStatus defines the observed state

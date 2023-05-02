@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -31,6 +32,7 @@ import (
 
 	cbtv1alpha1 "github.com/PrasadG193/cbt-datapath/pkg/api/cbt/v1alpha1"
 	"github.com/go-logr/logr"
+	"github.com/google/uuid"
 )
 
 const CSIEndpointEnvName = "CSI_ENDPOINT"
@@ -41,9 +43,8 @@ type CSISnapshotSessionAccessReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=cbt.storage.k8s.io,resources=volumesnapshotdeltatokens,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=cbt.storage.k8s.io,resources=volumesnapshotdeltatokens/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=cbt.storage.k8s.io,resources=volumesnapshotdeltatokens/finalizers,verbs=update
+//+kubebuilder:rbac:groups=cbt.storage.k8s.io,resources=csisnapshotsessionaccesses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=cbt.storage.k8s.io,resources=csisnapshotsessionaccesses/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -91,39 +92,54 @@ func (r *CSISnapshotSessionAccessReconciler) handleEvents(
 		return nil
 	}
 
-	//reqID := uuid.New().String()
-	//token := NewToken(reqID)
-	//ca, err := fetchCABundle()
-	//ca := "xxxxxxxxx"
-	//if err != nil {
-	//	return nil, err
-	//}
-	//obj.Status = cbtv1alpha1.CSISnapshotSessionAccessStatus{
-	//	SessionState: cbtv1alpha1.SessionStateTypeReady,
-	//	SessionToken:        token.Token,
-	//	SessionURL:          token.URL,
-	//	CABundle:     []byte(ca),
-	//}
-	status, err := fetchSessionToken(ctx, obj.Spec.BaseVolumeSnapshotName, obj.Spec.TargetVolumeSnapshotName)
+	// Fake token generation delay
+	time.Sleep(10 * time.Second)
+
+	reqID := uuid.New().String()
+	token := NewToken(reqID)
+	ca, err := fetchCABundle()
 	if err != nil {
 		return err
 	}
-	obj.Status = status
-	err = r.Status().Update(ctx, obj)
+	obj.Status = cbtv1alpha1.CSISnapshotSessionAccessStatus{
+		SessionState: cbtv1alpha1.SessionStateTypeReady,
+		SessionToken: token.Token,
+		SessionURL:   token.URL,
+		CACert:       []byte(ca),
+	}
+	//status, err := mockSessionToken(ctx, obj.Spec.BaseVolumeSnapshotName, obj.Spec.TargetVolumeSnapshotName)
+	//if err != nil {
+	//	return err
+	//}
+	//obj.Status = status
+	err = r.Update(ctx, obj)
 	if err != nil {
 		return err
 	}
 	logger.Info(fmt.Sprintf("created CSISnapshotSessionAccess: %s", obj.GetName()))
-
 	return nil
 }
 
-//func fetchCABundle() ([]byte, error) {
-//	cacertFile := os.Getenv("CBT_SERVER_CA_BUNDLE")
-//	if cacertFile == "" {
-//		return nil, errors.New("Failed to read CA Bundle from " + cacertFile)
+func fetchCABundle() ([]byte, error) {
+	cacertFile := os.Getenv("CBT_SERVER_CA_BUNDLE")
+	if cacertFile == "" {
+		return nil, errors.New("Failed to read CA Bundle from " + cacertFile)
+	}
+	return os.ReadFile(cacertFile)
+}
+
+//func mockSessionToken(ctx context.Context, baseSnapName, targetSnapName string) (cbtv1alpha1.CSISnapshotSessionAccessStatus, error) {
+//	// TODO: Store the session params in a CR
+//	cacert, err := fetchCABundle()
+//	if err != nil {
+//		return nil, err
 //	}
-//	return os.ReadFile(cacertFile)
+//	return cbtv1alpha1.CSISnapshotSessionAccessStatus{
+//		SessionState: cbtv1alpha1.SessionStateTypeReady,
+//		SessionToken: uuid.New().String(),
+//		SessionURL:   os.Getenv(CSIEndpointEnvName),
+//		CACert:       string(cacert),
+//	}, nil
 //}
 
 // TODO: Set the correct state of the request - InProgress,

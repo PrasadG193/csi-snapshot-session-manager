@@ -1,5 +1,7 @@
 package controller
 
+import "os"
+
 type Token struct {
 	URL      string `json:"url,omitempty"`
 	CABundle []byte `json:"cabundle,omitempty"`
@@ -9,7 +11,7 @@ type Token struct {
 func NewToken(reqID string) Token {
 	// TODO: Implement token generation algorithm
 	return Token{
-		URL:   "cbt-datapath.cbt-svc.svc:80",
+		URL:   os.Getenv("EXT_SNAP_SESSION_SVC_URL"),
 		Token: []byte(reqID),
 	}
 }

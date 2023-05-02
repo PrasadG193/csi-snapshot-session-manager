@@ -7,6 +7,7 @@ replace github.com/container-storage-interface/spec v1.7.0 => github.com/PrasadG
 require (
 	github.com/container-storage-interface/spec v1.7.0
 	github.com/go-logr/logr v1.2.3
+	github.com/google/uuid v1.1.2
 	github.com/kubernetes-csi/csi-lib-utils v0.13.0
 	github.com/onsi/ginkgo/v2 v2.6.0
 	github.com/onsi/gomega v1.24.1
@@ -14,7 +15,6 @@ require (
 	google.golang.org/protobuf v1.28.1
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3
-	k8s.io/apiserver v0.26.3
 	k8s.io/client-go v0.26.3
 	sigs.k8s.io/controller-runtime v0.14.1
 )
@@ -37,7 +37,6 @@ require (
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
-	github.com/google/uuid v1.1.2 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

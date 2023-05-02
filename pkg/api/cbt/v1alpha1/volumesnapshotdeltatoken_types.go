@@ -30,20 +30,15 @@ const (
 
 // CSISnapshotSessionAccessSpec defines the desired state of CSISnapshotSessionAccess
 type CSISnapshotSessionAccessSpec struct {
-	// The name of the base CSI volume snapshot to use for comparison.
-	// If not specified, return all changed blocks.
-	// +optional
-	BaseVolumeSnapshotName string `json:"baseVolumeSnapshotName,omitempty"`
-
-	// The name of the target CSI volume snapshot to use for comparison.
-	// Required.
-	TargetVolumeSnapshotName string `json:"targetVolumeSnapshotName"`
+	// The list of snapshots to generate session for
+	Snapshots []string `json:"snapshots,omitempty"`
 }
 
 // CSISnapshotSessionAccessStatus defines the observed state of CSISnapshotSessionAccess
 type CSISnapshotSessionAccessStatus struct {
 	// State of the CSISnapshotSessionAccess. One of the "Ready", "Pending", "Failed"
 	SessionState SessionStateType `json:"sessionState"`
+
 	// Captures any error encountered.
 	Error string `json:"error,omitempty"`
 
@@ -62,7 +57,7 @@ type CSISnapshotSessionAccessStatus struct {
 
 //+kubebuilder:object:root=true
 
-// CSISnapshotSessionAccess is the Schema for the volumesnapshotdeltatokens API
+// CSISnapshotSessionAccess is the Schema for the csisnapshotsessionaccesses API
 type CSISnapshotSessionAccess struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

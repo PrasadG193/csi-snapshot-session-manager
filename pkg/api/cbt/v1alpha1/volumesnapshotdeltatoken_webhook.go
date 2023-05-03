@@ -36,14 +36,14 @@ import (
 )
 
 // log is for logging in this package.
-var volumesnapshotdeltatokenlog = logf.Log.WithName("volumesnapshotdeltatoken-resource")
+var csisnapshotsessionaccesslog = logf.Log.WithName("csisnapshotsessionaccess-resource")
 
 func (r *CSISnapshotSessionAccess) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	volumesnapshotdeltatokenlog.Info("Registering Webhook handler.")
+	csisnapshotsessionaccesslog.Info("Registering Webhook handler.")
 	validator := &CSISnapshotSessionAccessValidator{}
 	whServer := mgr.GetWebhookServer()
 	// TODO: Declare as const
-	whServer.Register("/validate-cbt-storage-k8s-io-v1alpha1-volumesnapshotdeltatoken", &webhook.Admission{Handler: validator})
+	whServer.Register("/mutate-csisnapshotsessionaccess", &webhook.Admission{Handler: validator})
 	whServer.CertDir = "/tmp/k8s-webhook-server/serving-certs/"
 	whServer.Port = 9443
 
@@ -66,13 +66,15 @@ func (r *CSISnapshotSessionAccess) SetupWebhookWithManager(mgr ctrl.Manager) err
 
 var _ admission.Handler = &CSISnapshotSessionAccessValidator{}
 
-// +kubebuilder:webhook:path=/validate-cbt-storage-k8s-io-v1alpha1-volumesnapshotdeltatoken,mutating=true,failurePolicy=fail,sideEffects=None,groups=cbt.storage.k8s.io,resources=csisnapshotsessionaccesses,verbs=create;update,versions=v1alpha1,name=vvolumesnapshotdeltatoken.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-csisnapshotsessionaccess,mutating=true,failurePolicy=fail,sideEffects=None,groups=cbt.storage.k8s.io,resources=csisnapshotsessionaccesses,verbs=create;update,versions=v1alpha1,name=vcsisnapshotsessionaccess.kb.io,admissionReviewVersions=v1
 // +kubebuilder:object:generate=false
 type CSISnapshotSessionAccessValidator struct {
 	decoder *admission.Decoder
 	cli     kubernetes.Interface
 }
 
+// authorizeUser checks if user has permissions to access volumesnapshots and pvc resources
+// Once the auth checks passes, it sets the CR status to pending state
 func (v *CSISnapshotSessionAccessValidator) authorizeUser(ctx context.Context, req admission.Request) (bool, error) {
 	extra := make(map[string]v1.ExtraValue, len(req.UserInfo.Extra))
 	for u, e := range req.UserInfo.Extra {
@@ -97,6 +99,8 @@ func (v *CSISnapshotSessionAccessValidator) canAccessPVC(ctx context.Context, na
 	return v.subjectAccessReview(ctx, namespace, userInfo, extraValues, "get", metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "persistentvolumeclaims"})
 }
 
+// Check if the user is authorized to perform given operations on the volumesnapshots and PVC resources using SubjectAccessReview API
+// SubjectAccessReview is a declarative API called with SubjectAccessReview resources
 func (v *CSISnapshotSessionAccessValidator) subjectAccessReview(ctx context.Context, namespace string, userInfo authnv1.UserInfo, extraValues map[string]authzv1.ExtraValue, verb string, gvr metav1.GroupVersionResource) (bool, error) {
 	sar := &v1.SubjectAccessReview{
 		Spec: v1.SubjectAccessReviewSpec{
@@ -115,41 +119,24 @@ func (v *CSISnapshotSessionAccessValidator) subjectAccessReview(ctx context.Cont
 	}
 	sarResp, err := v.cli.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		//return admission.Errored(http.StatusBadRequest, err)
 		return false, err
 	}
-	//sarJson, err := sarResp.Status.Marshal()
-	//fmt.Printf("debug: SAR Response:: %s %v\n", string(sarJson), err)
 	if !sarResp.Status.Allowed || sarResp.Status.Denied {
 		return false, nil
-		//return admission.Response{
-		//	AdmissionResponse: admissionv1.AdmissionResponse{
-		//		Allowed: false,
-		//		Result:  &metav1.Status{},
-		//	},
-		//}
 	}
 	return true, nil
 }
 
 func (v *CSISnapshotSessionAccessValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	fmt.Printf("USERINFO::: %#v\n", req.UserInfo)
-	// Do the validation
+	csisnapshotsessionaccesslog.Info(fmt.Sprintf("debug: webhook req object Raw: %s", string(req.Object.Raw)))
+	csisnapshotsessionaccesslog.Info(fmt.Sprintf("debug: userinfo: %#v\n", req.UserInfo))
 	vsd := &CSISnapshotSessionAccess{}
 	err := v.decoder.Decode(req, vsd)
 	if err != nil {
-		volumesnapshotdeltatokenlog.Error(err, "Failed to decode request object")
+		csisnapshotsessionaccesslog.Error(err, "Failed to decode request object")
 		return admission.Errored(http.StatusBadRequest, err)
 	}
-
-	// Verify if the user has permission to GET volumesnapshot resources
-	//userInfo, err := userToInfo(req.UserInfo)
-	//if err != nil {
-	//	volumesnapshotdeltatokenlog.Error(err, "Failed to decode request object")
-	//	return admission.Errored(http.StatusBadRequest, err)
-	//}
-	//att :=
-	//fmt.Println(att)
+	// Perform authorization checks
 	authz, err := v.authorizeUser(ctx, req)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
@@ -167,23 +154,7 @@ func (v *CSISnapshotSessionAccessValidator) Handle(ctx context.Context, req admi
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
-	fmt.Println("debug: webhook req object Raw:: ", string(req.Object.Raw))
-	fmt.Println("debug: webhook result:: ", string(marshaledObject))
 	patched := admission.PatchResponseFromRaw(req.Object.Raw, marshaledObject)
-	fmt.Printf("debug: webhook patched response:: %#v\n", patched)
+	csisnapshotsessionaccesslog.Info(fmt.Sprintf("debug: Setting CSISnapshotSessionAccess %s state to pending", vsd.Name))
 	return patched
 }
-
-//func getResourceAttributes(namespace string) *v1.ResourceAttributes {
-//	apiVerb := "get"
-//	vsGroup := "snapshot.storage.k8s.io"
-//	vsVersion := "v1"
-//	vsResource := "volumesnapshots"
-//	return &v1.ResourceAttributes{
-//		Verb:      apiVerb,
-//		Namespace: namespace,
-//		Group:     vsGroup,
-//		Version:   vsVersion,
-//		Resource:  vsResource,
-//	}
-//}

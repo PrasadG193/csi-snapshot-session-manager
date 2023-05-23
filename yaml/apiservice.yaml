@@ -4,14 +4,14 @@ kind: APIService
 metadata:
   name: v1alpha1.cbt.storage.k8s.io
   labels:
-    api: cbt-datapath
+    api: external-snapshot-session-access
     apiserver: "true"
 spec:
   version: v1alpha1
   group: cbt.storage.k8s.io
   groupPriorityMinimum: 2000
   service:
-    name: cbt-datapath
+    name: external-snapshot-session-access
     namespace: cbt-svc
   versionPriority: 10
   caBundle: 

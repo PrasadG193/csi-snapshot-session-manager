@@ -10,13 +10,13 @@ import (
 	"os"
 	"time"
 
-	pb "github.com/PrasadG193/cbt-datapath/pkg/grpc"
+	pb "github.com/PrasadG193/external-snapshot-session-access/pkg/grpc"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
-const URL = "cbt-datapath.cbt-datapath:9000"
+const URL = "external-snapshot-session-access.external-snapshot-session-access:9000"
 
 func loadTLSCredentials() (credentials.TransportCredentials, error) {
 	// Load certificate of the CA who signed server's certificate

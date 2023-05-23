@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	cbtv1alpha1 "github.com/PrasadG193/cbt-datapath/pkg/api/cbt/v1alpha1"
+	cbtv1alpha1 "github.com/PrasadG193/external-snapshot-session-access/pkg/api/cbt/v1alpha1"
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 )

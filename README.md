@@ -34,5 +34,5 @@ spec:
 status:
   cabundle: xxxx
   token: xxxxxxxx
-  url: cbt-datapath.cbt-svc.svc:80
+  url: external-snapshot-session-access.cbt-svc.svc:80
 ```

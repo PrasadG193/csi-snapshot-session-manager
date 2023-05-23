@@ -5,8 +5,8 @@ metadata:
     app.kubernetes.io/name: clusterrole
     app.kubernetes.io/instance: proxy-role
     app.kubernetes.io/component: kube-rbac-proxy
-    app.kubernetes.io/created-by: cbt-datapath
-    app.kubernetes.io/part-of: cbt-datapath
+    app.kubernetes.io/created-by: external-snapshot-session-access
+    app.kubernetes.io/part-of: external-snapshot-session-access
     app.kubernetes.io/managed-by: kustomize
   name: proxy-role
 rules:

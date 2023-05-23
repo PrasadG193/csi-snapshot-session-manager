@@ -2,26 +2,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cbt-datapath-apiserver
+  name: external-snapshot-session-access-apiserver
   namespace: cbt-svc
   labels:
-    api: cbt-datapath
+    api: external-snapshot-session-access
     apiserver: "true"
 spec:
   selector:
     matchLabels:
-      api: cbt-datapath
+      api: external-snapshot-session-access
       apiserver: "true"
   replicas: 1
   template:
     metadata:
       labels:
-        api: cbt-datapath
+        api: external-snapshot-session-access
         apiserver: "true"
     spec:
       containers:
       - name: apiserver
-        image: prasadg193/cbt-datapath:latest
+        image: prasadg193/external-snapshot-session-access:latest
         volumeMounts:
         - mountPath: /apiserver.local.config/certificates
           name: apiserver-certs
@@ -64,19 +64,19 @@ spec:
       volumes:
       - name: apiserver-certs
         secret:
-          secretName: cbt-datapath
+          secretName: external-snapshot-session-access
       - name: apiserver-ca-cert
         secret:
-          secretName: cbt-datapath-ca-cert
+          secretName: external-snapshot-session-access-ca-cert
 ---
 apiVersion: v1
 kind: Secret
 type: kubernetes.io/tls
 metadata:
-  name: cbt-datapath
+  name: external-snapshot-session-access
   namespace: cbt-svc
   labels:
-    api: cbt-datapath
+    api: external-snapshot-session-access
     apiserver: "true"
 data:
   tls.crt: 
@@ -85,10 +85,10 @@ data:
 apiVersion: v1
 kind: Service
 metadata:
-  name: cbt-datapath
+  name: external-snapshot-session-access
   namespace: cbt-svc
   labels:
-    api: cbt-datapath
+    api: external-snapshot-session-access
     apiserver: "true"
 spec:
   ports:
@@ -101,5 +101,5 @@ spec:
     protocol: TCP
     targetPort: 9000
   selector:
-    api: cbt-datapath
+    api: external-snapshot-session-access
     apiserver: "true"

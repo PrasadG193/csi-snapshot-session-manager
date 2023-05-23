@@ -1,5 +1,5 @@
 IMAGE_REPO_CLIENT ?= prasadg193/cbt-client
-IMAGE_REPO_CONTROLLER ?= prasadg193/cbt-datapath
+IMAGE_REPO_CONTROLLER ?= prasadg193/external-snapshot-session-access
 IMAGE_REPO_SAMPLE_DRIVER ?= prasadg193/sample-driver
 IMAGE_TAG_CLIENT ?= latest
 IMAGE_TAG_CONTROLLER ?= latest

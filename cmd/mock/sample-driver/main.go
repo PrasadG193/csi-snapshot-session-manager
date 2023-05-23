@@ -7,8 +7,8 @@ import (
 	"net"
 	"os"
 
-	pb "github.com/PrasadG193/cbt-datapath/pkg/grpc"
-	grpcserver "github.com/PrasadG193/cbt-datapath/pkg/grpc/server"
+	pb "github.com/PrasadG193/external-snapshot-session-access/pkg/grpc"
+	grpcserver "github.com/PrasadG193/external-snapshot-session-access/pkg/grpc/server"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

@@ -18,7 +18,6 @@ package v1alpha1
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -27,12 +26,16 @@ import (
 	authzv1 "k8s.io/api/authorization/v1"
 	v1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+)
+
+const (
+	webhookPath = "/csisnapshotsessionaccess/validate"
+	certDir     = "/tmp/k8s-webhook-server/serving-certs/"
 )
 
 // log is for logging in this package.
@@ -43,8 +46,8 @@ func (r *CSISnapshotSessionAccess) SetupWebhookWithManager(mgr ctrl.Manager) err
 	validator := &CSISnapshotSessionAccessValidator{}
 	whServer := mgr.GetWebhookServer()
 	// TODO: Declare as const
-	whServer.Register("/mutate-csisnapshotsessionaccess", &webhook.Admission{Handler: validator})
-	whServer.CertDir = "/tmp/k8s-webhook-server/serving-certs/"
+	whServer.Register(webhookPath, &webhook.Admission{Handler: validator})
+	whServer.CertDir = certDir
 	whServer.Port = 9443
 
 	decoder, err := admission.NewDecoder(mgr.GetScheme())
@@ -66,7 +69,7 @@ func (r *CSISnapshotSessionAccess) SetupWebhookWithManager(mgr ctrl.Manager) err
 
 var _ admission.Handler = &CSISnapshotSessionAccessValidator{}
 
-// +kubebuilder:webhook:path=/mutate-csisnapshotsessionaccess,mutating=true,failurePolicy=fail,sideEffects=None,groups=cbt.storage.k8s.io,resources=csisnapshotsessionaccesses,verbs=create;update,versions=v1alpha1,name=vcsisnapshotsessionaccess.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/csisnapshotsessionaccess/validate,mutating=false,failurePolicy=fail,sideEffects=None,groups=cbt.storage.k8s.io,resources=csisnapshotsessionaccesses,verbs=create;update,versions=v1alpha1,name=csisnapshotsessionaccess.kb.io,admissionReviewVersions=v1
 // +kubebuilder:object:generate=false
 type CSISnapshotSessionAccessValidator struct {
 	decoder *admission.Decoder
@@ -149,12 +152,18 @@ func (v *CSISnapshotSessionAccessValidator) Handle(ctx context.Context, req admi
 			},
 		}
 	}
-	vsd.Status.SessionState = SessionStateTypePending
-	marshaledObject, err := json.Marshal(runtime.Object(vsd))
-	if err != nil {
-		return admission.Errored(http.StatusBadRequest, err)
+	//vsd.Status.SessionState = SessionStateTypePending
+	//marshaledObject, err := json.Marshal(runtime.Object(vsd))
+	//if err != nil {
+	//	return admission.Errored(http.StatusBadRequest, err)
+	//}
+	//patched := admission.PatchResponseFromRaw(req.Object.Raw, marshaledObject)
+	//csisnapshotsessionaccesslog.Info(fmt.Sprintf("debug: Setting CSISnapshotSessionAccess %s state to pending", vsd.Name))
+	csisnapshotsessionaccesslog.Info("debug: all validation checks passed!")
+	return admission.Response{
+		AdmissionResponse: admissionv1.AdmissionResponse{
+			Allowed: true,
+			Result:  &metav1.Status{},
+		},
 	}
-	patched := admission.PatchResponseFromRaw(req.Object.Raw, marshaledObject)
-	csisnapshotsessionaccesslog.Info(fmt.Sprintf("debug: Setting CSISnapshotSessionAccess %s state to pending", vsd.Name))
-	return patched
 }

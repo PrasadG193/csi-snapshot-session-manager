@@ -97,7 +97,7 @@ func (r *CSISnapshotSessionAccessReconciler) handleEvents(
 
 	reqID := uuid.New().String()
 	token := NewToken(reqID)
-	ca, err := fetchCABundle()
+	//ca, err := fetchCABundle()
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (r *CSISnapshotSessionAccessReconciler) handleEvents(
 		SessionState: cbtv1alpha1.SessionStateTypeReady,
 		SessionToken: token.Token,
 		SessionURL:   token.URL,
-		CACert:       []byte(ca),
+		//CACert:       []byte(ca),
 	}
 	//status, err := mockSessionToken(ctx, obj.Spec.BaseVolumeSnapshotName, obj.Spec.TargetVolumeSnapshotName)
 	//if err != nil {

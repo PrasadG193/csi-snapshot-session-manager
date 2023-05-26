@@ -241,23 +241,3 @@ func fetchCABundle() ([]byte, error) {
 //		CACert:       string(cacert),
 //	}, nil
 //}
-
-// TODO: Set the correct state of the request - InProgress,
-// SessionResponse, session state and error
-func fetchSessionToken(ctx context.Context, baseSnapName, targetSnapName string) (cbtv1alpha1.CSISnapshotSessionAccessStatus, error) {
-	// FIXME Add sleep of 10s to mock CBT session creation delay
-	time.Sleep(10 * time.Second)
-	csiEndpoint := os.Getenv(CSIEndpointEnvName)
-	fmt.Println("Invoking gRPC on", csiEndpoint)
-	client := NewCSIClient(csiEndpoint)
-	tokenResp, err := client.FetchSessionToken(ctx, baseSnapName, targetSnapName)
-	if err != nil {
-		return cbtv1alpha1.CSISnapshotSessionAccessStatus{}, err
-	}
-	return cbtv1alpha1.CSISnapshotSessionAccessStatus{
-		SessionState: cbtv1alpha1.SessionStateTypeReady,
-		SessionToken: tokenResp.SessionToken,
-		SessionURL:   tokenResp.SessionUrl,
-		CACert:       []byte(tokenResp.CaCert),
-	}, nil
-}

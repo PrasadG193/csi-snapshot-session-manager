@@ -18,6 +18,22 @@ resources:
   path: github.com/PrasadG193/external-snapshot-session-access/pkg/api/cbt/v1alpha1
   version: v1alpha1
   webhooks:
-    validation: false
+    validation: true
     webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: storage.k8s.io
+  group: cbt
+  kind: CSISnapshotSessionData
+  path: github.com/PrasadG193/external-snapshot-session-access/pkg/api/cbt/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: storage.k8s.io
+  group: cbt
+  kind: CSISnapshotSessionService
+  path: github.com/PrasadG193/external-snapshot-session-access/pkg/api/cbt/v1alpha1
+  version: v1alpha1
 version: "3"

@@ -139,6 +139,8 @@ func (v *CSISnapshotSessionAccessValidator) Handle(ctx context.Context, req admi
 		csisnapshotsessionaccesslog.Error(err, "Failed to decode request object")
 		return admission.Errored(http.StatusBadRequest, err)
 	}
+	//TODO: Check for empty status of the CR
+
 	// Perform authorization checks
 	authz, err := v.authorizeUser(ctx, req)
 	if err != nil {

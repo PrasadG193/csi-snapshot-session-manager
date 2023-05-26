@@ -43,6 +43,10 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
+const (
+	certDir = "/tmp/k8s-webhook-server/serving-certs/"
+)
+
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(cbtv1alpha1.AddToScheme(scheme))
@@ -71,6 +75,7 @@ func main() {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
+		CertDir:                certDir,
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,

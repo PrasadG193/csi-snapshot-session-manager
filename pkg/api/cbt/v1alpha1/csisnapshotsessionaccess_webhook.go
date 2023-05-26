@@ -35,7 +35,6 @@ import (
 
 const (
 	webhookPath = "/csisnapshotsessionaccess/validate"
-	certDir     = "/tmp/k8s-webhook-server/serving-certs/"
 )
 
 // log is for logging in this package.
@@ -45,10 +44,7 @@ func (r *CSISnapshotSessionAccess) SetupWebhookWithManager(mgr ctrl.Manager) err
 	csisnapshotsessionaccesslog.Info("Registering Webhook handler.")
 	validator := &CSISnapshotSessionAccessValidator{}
 	whServer := mgr.GetWebhookServer()
-	// TODO: Declare as const
 	whServer.Register(webhookPath, &webhook.Admission{Handler: validator})
-	whServer.CertDir = certDir
-	whServer.Port = 9443
 
 	decoder, err := admission.NewDecoder(mgr.GetScheme())
 	if err != nil {

@@ -1,22 +1,22 @@
 package controller
 
-import "os"
+import (
+	"k8s.io/apimachinery/pkg/util/rand"
+)
 
-type Token struct {
-	URL      string `json:"url,omitempty"`
-	CABundle []byte `json:"cabundle,omitempty"`
-	Token    []byte `json:"token,omitempty"`
+const (
+	tokenLength = 32
+	ssdPrefix   = "csi-cbt-"
+)
+
+func newToken() string {
+	return rand.String(tokenLength)
 }
 
-func NewToken(reqID string) Token {
-	// TODO: Implement token generation algorithm
-	return Token{
-		URL:   os.Getenv("EXT_SNAP_SESSION_SVC_URL"),
-		Token: []byte(reqID),
-	}
+func generateSnapSessionDataName() string {
+	return SnapSessionDataNameWithToken(newToken())
 }
 
-func ValidToken(token string) bool {
-	// TODO: Implement token validation algorithm
-	return true
+func SnapSessionDataNameWithToken(token string) string {
+	return ssdPrefix + token
 }

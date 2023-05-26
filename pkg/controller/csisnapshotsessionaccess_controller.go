@@ -153,7 +153,7 @@ func (r *CSISnapshotSessionAccessReconciler) storeSessionData(ctx context.Contex
 	expiry := metav1.NewTime(time.Now().Add(time.Minute * time.Duration(10)))
 	ssd := &cbtv1alpha1.CSISnapshotSessionData{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      generateSnapSessionDataName(),
+			Name:      SnapSessionDataNameWithToken(token),
 			Namespace: namespace,
 		},
 		Spec: cbtv1alpha1.CSISnapshotSessionDataSpec{

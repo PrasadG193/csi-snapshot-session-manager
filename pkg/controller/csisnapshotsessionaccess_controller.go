@@ -23,7 +23,6 @@ import (
 
 	"github.com/go-logr/logr"
 	volsnapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -47,10 +46,9 @@ type CSISnapshotSessionAccessReconciler struct {
 }
 
 type vsInfo struct {
-	volumeName string
-	volumeID   string
-	snapshotID string
-	driverName string
+	volumeHandle   string
+	snapshotHandle string
+	driverName     string
 }
 
 //+kubebuilder:rbac:groups=cbt.storage.k8s.io,resources=csisnapshotsessionaccesses,verbs=get;list;watch;create;update;patch;delete
@@ -87,6 +85,7 @@ func (r *CSISnapshotSessionAccessReconciler) Reconcile(ctx context.Context, req 
 			SessionState: cbtv1alpha1.SessionStateTypePending,
 			ExpiryTime:   &expiry,
 		}
+		logger.Info("debug:: setting pending")
 		err = r.Update(ctx, obj)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -102,15 +101,15 @@ func (r *CSISnapshotSessionAccessReconciler) Reconcile(ctx context.Context, req 
 		// Set object state to Failed/Expired
 		now := metav1.Now()
 		if obj.Status.ExpiryTime.Before(&now) {
-			obj.Status = cbtv1alpha1.CSISnapshotSessionAccessStatus{
-				SessionState: cbtv1alpha1.SessionStateTypeFailed,
-			}
+			logger.Info("debug:: setting expired")
+			obj.Status.SessionState = cbtv1alpha1.SessionStateTypeFailed
 			err = r.Update(ctx, obj)
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, nil
 	}
 
+	logger.Info("debug:: handling event")
 	return ctrl.Result{}, r.handleEvents(ctx, obj, logger)
 }
 
@@ -146,6 +145,10 @@ func (r *CSISnapshotSessionAccessReconciler) handleEvents(
 		return err1
 	}
 
+	// Fetch latest rev of obj
+	if err := r.Get(ctx, types.NamespacedName{Name: obj.Name, Namespace: obj.Namespace}, obj); err != nil {
+		return err
+	}
 	obj.Status = cbtv1alpha1.CSISnapshotSessionAccessStatus{
 		ExpiryTime:   obj.Status.ExpiryTime,
 		SessionState: cbtv1alpha1.SessionStateTypeReady,
@@ -153,6 +156,7 @@ func (r *CSISnapshotSessionAccessReconciler) handleEvents(
 		SessionURL:   sss.Spec.Address,
 		CACert:       sss.Spec.CACert,
 	}
+	logger.Info("debug:: updating status")
 	err = r.Update(ctx, obj)
 	if err != nil {
 		return err
@@ -174,8 +178,11 @@ func (r *CSISnapshotSessionAccessReconciler) storeSessionData(ctx context.Contex
 		},
 	}
 	for vs, info := range vsInfoMap {
-		ssd.Spec.Volumes = append(ssd.Spec.Volumes, cbtv1alpha1.Volume{ID: info.volumeID, Name: info.volumeName})
-		ssd.Spec.Snapshots = append(ssd.Spec.Snapshots, cbtv1alpha1.Snapshot{ID: info.snapshotID, Name: vs, Volume: info.volumeName})
+		ssd.Spec.Snapshots = append(ssd.Spec.Snapshots, cbtv1alpha1.Snapshot{
+			SnapshotHandle: info.snapshotHandle,
+			Name:           vs,
+			VolumeHandle:   info.volumeHandle,
+		})
 	}
 	err := r.Create(ctx, ssd)
 	logger.Info(fmt.Sprintf("created CSISnapshotSessionData: %s/%s", ssd.GetNamespace(), ssd.GetName()))
@@ -196,16 +203,11 @@ func (r *CSISnapshotSessionAccessReconciler) volumeSnapshotsInfo(ctx context.Con
 		if err1 != nil {
 			return nil, err1
 		}
-		pvc := &corev1.PersistentVolumeClaim{}
-		err2 := r.Get(ctx, types.NamespacedName{Name: *vs.Spec.Source.PersistentVolumeClaimName, Namespace: namespace}, pvc)
-		if err2 != nil {
-			return nil, err2
-		}
 		// TODO: Verify that all the vs refers to the same driver
 		vsInfoMap[vsName] = vsInfo{
-			driverName: vsc.Spec.Driver,
-			volumeID:   *vsc.Spec.Source.VolumeHandle,
-			snapshotID: *vsc.Status.SnapshotHandle,
+			driverName:     vsc.Spec.Driver,
+			volumeHandle:   *vsc.Spec.Source.VolumeHandle,
+			snapshotHandle: *vsc.Status.SnapshotHandle,
 		}
 	}
 	return vsInfoMap, nil

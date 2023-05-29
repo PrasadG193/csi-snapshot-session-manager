@@ -45,21 +45,11 @@ spec:
                 items:
                   description: Snapshot
                   properties:
-                    id:
-                      type: string
                     name:
                       type: string
-                    volume:
+                    snapshotHandle:
                       type: string
-                  type: object
-                type: array
-              volumes:
-                items:
-                  description: Volume
-                  properties:
-                    id:
-                      type: string
-                    name:
+                    volumeHandle:
                       type: string
                   type: object
                 type: array

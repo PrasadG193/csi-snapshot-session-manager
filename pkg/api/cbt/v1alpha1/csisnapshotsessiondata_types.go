@@ -25,20 +25,13 @@ type CSISnapshotSessionDataSpec struct {
 	Expiry       *metav1.Time `json:"expiryTime,nomitempty"`
 	SessionToken string       `json:"sessionToken,omitempty"`
 	Snapshots    []Snapshot   `json:"snapshots,omitempty"`
-	Volumes      []Volume     `json:"volumes,omitempty"`
-}
-
-// Volume
-type Volume struct {
-	ID   string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
 }
 
 // Snapshot
 type Snapshot struct {
-	ID     string `json:"id,omitempty"`
-	Name   string `json:"name,omitempty"`
-	Volume string `json:"volume,omitempty"`
+	SnapshotHandle string `json:"snapshotHandle,omitempty"`
+	Name           string `json:"name,omitempty"`
+	VolumeHandle   string `json:"volumeHandle,omitempty"`
 }
 
 //+kubebuilder:object:root=true

@@ -1,9 +1,5 @@
-IMAGE_REPO_CLIENT ?= prasadg193/cbt-client
-IMAGE_REPO_CONTROLLER ?= prasadg193/external-snapshot-session-access
-IMAGE_REPO_SAMPLE_DRIVER ?= prasadg193/sample-driver
-IMAGE_TAG_CLIENT ?= latest
+IMAGE_REPO_CONTROLLER ?= prasadg193/snapshot-session-access
 IMAGE_TAG_CONTROLLER ?= latest
-IMAGE_TAG_SAMPLE_DRIVER ?= latest
 
 GOOS ?= linux
 GOARCH ?= amd64
@@ -50,8 +46,6 @@ test: manifests generate fmt vet envtest ## Run tests.
 .PHONY: build
 build: manifests generate fmt vet ## Build manager binary.
 	go build -o bin/manager cmd/controller/main.go
-	go build -o bin/cbt-client cmd/mock/client/main.go
-	go build -o bin/sample-driver cmd/mock/sample-driver/main.go
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
@@ -63,12 +57,10 @@ run: manifests generate fmt vet ## Run a controller from your host.
 .PHONY: docker-build
 docker-build: test ## Build docker image with the manager.
 	docker build -t $(IMAGE_REPO_CONTROLLER):$(IMAGE_TAG_CONTROLLER) -f Dockerfile .
-	docker build -t $(IMAGE_REPO_SAMPLE_DRIVER):$(IMAGE_TAG_SAMPLE_DRIVER) -f Dockerfile-grpc .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
 	docker push $(IMAGE_REPO_CONTROLLER):$(IMAGE_TAG_CONTROLLER)
-	docker push $(IMAGE_REPO_SAMPLE_DRIVER):$(IMAGE_TAG_SAMPLE_DRIVER)
 
 ##@ Deployment
 

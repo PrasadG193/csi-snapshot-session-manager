@@ -1,4 +1,4 @@
-module github.com/PrasadG193/external-snapshot-session-access
+module github.com/PrasadG193/snapshot-session-access
 
 go 1.19
 

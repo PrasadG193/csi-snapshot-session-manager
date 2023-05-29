@@ -18,13 +18,10 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"os"
 	"time"
 
-	//"github.com/docker/docker/daemon/logger"
-
+	"github.com/go-logr/logr"
 	volsnapv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -39,10 +36,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	cbtv1alpha1 "github.com/PrasadG193/external-snapshot-session-access/pkg/api/cbt/v1alpha1"
-	"github.com/go-logr/logr"
 )
 
-const CSIEndpointEnvName = "CSI_ENDPOINT"
+var sessionAccessTTL = time.Minute * time.Duration(10)
 
 // CSISnapshotSessionAccessReconciler reconciles a CSISnapshotSessionAccess object
 type CSISnapshotSessionAccessReconciler struct {
@@ -72,8 +68,8 @@ type vsInfo struct {
 func (r *CSISnapshotSessionAccessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	vsdt := &cbtv1alpha1.CSISnapshotSessionAccess{}
-	err := r.Get(ctx, req.NamespacedName, vsdt)
+	obj := &cbtv1alpha1.CSISnapshotSessionAccess{}
+	err := r.Get(ctx, req.NamespacedName, obj)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
@@ -83,7 +79,39 @@ func (r *CSISnapshotSessionAccessReconciler) Reconcile(ctx context.Context, req 
 		return reconcile.Result{}, err
 	}
 
-	return ctrl.Result{}, r.handleEvents(ctx, vsdt, logger)
+	// Set initial expiry time and retry
+	if obj.Status.SessionState != cbtv1alpha1.SessionStateTypePending &&
+		obj.Status.ExpiryTime == nil {
+		expiry := metav1.NewTime(metav1.Now().Add(sessionAccessTTL))
+		obj.Status = cbtv1alpha1.CSISnapshotSessionAccessStatus{
+			SessionState: cbtv1alpha1.SessionStateTypePending,
+			ExpiryTime:   &expiry,
+		}
+		err = r.Update(ctx, obj)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{Requeue: true}, nil
+	}
+
+	if obj.Status.SessionState == cbtv1alpha1.SessionStateTypeFailed {
+		return reconcile.Result{}, nil
+	}
+	if obj.Status.SessionState == cbtv1alpha1.SessionStateTypeReady {
+		// Return if expired and pending
+		// Set object state to Failed/Expired
+		now := metav1.Now()
+		if obj.Status.ExpiryTime.Before(&now) {
+			obj.Status = cbtv1alpha1.CSISnapshotSessionAccessStatus{
+				SessionState: cbtv1alpha1.SessionStateTypeFailed,
+			}
+			err = r.Update(ctx, obj)
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, nil
+	}
+
+	return ctrl.Result{}, r.handleEvents(ctx, obj, logger)
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -98,17 +126,6 @@ func (r *CSISnapshotSessionAccessReconciler) handleEvents(
 	ctx context.Context,
 	obj *cbtv1alpha1.CSISnapshotSessionAccess,
 	logger logr.Logger) error {
-
-	//casted.SetCreationTimestamp(metav1.Now())
-	//out := casted.DeepCopy()
-	if obj.Status.SessionState == cbtv1alpha1.SessionStateTypeReady ||
-		obj.Status.SessionState == cbtv1alpha1.SessionStateTypeFailed {
-		// TODO: Return if expired and pending
-		// Set object state to Failed/Expired
-		return nil
-	}
-
-	// TODO: Set initial expiry time and retry
 
 	// 1. Discover driver name
 	vsInfo, err := r.volumeSnapshotsInfo(ctx, obj.Spec.Snapshots, obj.GetNamespace())
@@ -130,17 +147,12 @@ func (r *CSISnapshotSessionAccessReconciler) handleEvents(
 	}
 
 	obj.Status = cbtv1alpha1.CSISnapshotSessionAccessStatus{
-		ExpiryTime:   nil,
+		ExpiryTime:   obj.Status.ExpiryTime,
 		SessionState: cbtv1alpha1.SessionStateTypeReady,
 		SessionToken: []byte(token),
 		SessionURL:   sss.Spec.Address,
 		CACert:       sss.Spec.CACert,
 	}
-	//status, err := mockSessionToken(ctx, obj.Spec.BaseVolumeSnapshotName, obj.Spec.TargetVolumeSnapshotName)
-	//if err != nil {
-	//	return err
-	//}
-	//obj.Status = status
 	err = r.Update(ctx, obj)
 	if err != nil {
 		return err
@@ -150,7 +162,7 @@ func (r *CSISnapshotSessionAccessReconciler) handleEvents(
 }
 
 func (r *CSISnapshotSessionAccessReconciler) storeSessionData(ctx context.Context, logger logr.Logger, namespace, token, driver string, vsInfoMap map[string]vsInfo) (*cbtv1alpha1.CSISnapshotSessionData, error) {
-	expiry := metav1.NewTime(time.Now().Add(time.Minute * time.Duration(10)))
+	expiry := metav1.NewTime(time.Now().Add(sessionAccessTTL))
 	ssd := &cbtv1alpha1.CSISnapshotSessionData{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      SnapSessionDataNameWithToken(token),
@@ -192,7 +204,6 @@ func (r *CSISnapshotSessionAccessReconciler) volumeSnapshotsInfo(ctx context.Con
 		// TODO: Verify that all the vs refers to the same driver
 		vsInfoMap[vsName] = vsInfo{
 			driverName: vsc.Spec.Driver,
-			//volumeName: pvc.Spec.VolumeName,
 			volumeID:   *vsc.Spec.Source.VolumeHandle,
 			snapshotID: *vsc.Status.SnapshotHandle,
 		}
@@ -219,25 +230,3 @@ func (r *CSISnapshotSessionAccessReconciler) findSnapSessionService(ctx context.
 	logger.Info(fmt.Sprintf("found CSISnapshotSessionService object %s for driver: %s", sssList.Items[0].GetName(), driver))
 	return &sssList.Items[0], nil
 }
-
-func fetchCABundle() ([]byte, error) {
-	cacertFile := os.Getenv("CBT_SERVER_CA_BUNDLE")
-	if cacertFile == "" {
-		return nil, errors.New("Failed to read CA Bundle from " + cacertFile)
-	}
-	return os.ReadFile(cacertFile)
-}
-
-//func mockSessionToken(ctx context.Context, baseSnapName, targetSnapName string) (cbtv1alpha1.CSISnapshotSessionAccessStatus, error) {
-//	// TODO: Store the session params in a CR
-//	cacert, err := fetchCABundle()
-//	if err != nil {
-//		return nil, err
-//	}
-//	return cbtv1alpha1.CSISnapshotSessionAccessStatus{
-//		SessionState: cbtv1alpha1.SessionStateTypeReady,
-//		SessionToken: uuid.New().String(),
-//		SessionURL:   os.Getenv(CSIEndpointEnvName),
-//		CACert:       string(cacert),
-//	}, nil
-//}

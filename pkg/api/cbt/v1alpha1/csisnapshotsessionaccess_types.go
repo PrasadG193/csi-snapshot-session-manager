@@ -52,7 +52,7 @@ type CSISnapshotSessionAccessStatus struct {
 	SessionURL string `json:"sessionURL,omitempty"`
 
 	// ExpiryTime
-	ExpiryTime *metav1.Timestamp `json:"expiryTime,omitempty"`
+	ExpiryTime *metav1.Time `json:"expiryTime,omitempty"`
 }
 
 //+kubebuilder:object:root=true

@@ -22,7 +22,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -120,8 +119,7 @@ func (in *CSISnapshotSessionAccessStatus) DeepCopyInto(out *CSISnapshotSessionAc
 	}
 	if in.ExpiryTime != nil {
 		in, out := &in.ExpiryTime, &out.ExpiryTime
-		*out = new(v1.Timestamp)
-		**out = **in
+		*out = (*in).DeepCopy()
 	}
 }
 

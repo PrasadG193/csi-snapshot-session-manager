@@ -1,4 +1,4 @@
-IMAGE_REPO_CONTROLLER ?= prasadg193/snapshot-session-access
+IMAGE_REPO_CONTROLLER ?= prasadg193/csi-snapshot-session-manager
 IMAGE_TAG_CONTROLLER ?= latest
 
 GOOS ?= linux

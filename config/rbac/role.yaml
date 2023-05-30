@@ -2,12 +2,13 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  creationTimestamp: null
   name: manager-role
 rules:
 - apiGroups:
   - cbt.storage.k8s.io
   resources:
-  - volumesnapshotdeltatokens
+  - csisnapshotsessionaccesses
   verbs:
   - create
   - delete
@@ -19,14 +20,6 @@ rules:
 - apiGroups:
   - cbt.storage.k8s.io
   resources:
-  - volumesnapshotdeltatokens/finalizers
+  - csisnapshotsessionaccesses/finalizers
   verbs:
-  - update
-- apiGroups:
-  - cbt.storage.k8s.io
-  resources:
-  - volumesnapshotdeltatokens/status
-  verbs:
-  - get
-  - patch
   - update

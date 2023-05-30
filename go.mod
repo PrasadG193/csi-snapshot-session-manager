@@ -1,4 +1,4 @@
-module github.com/PrasadG193/snapshot-session-access
+module github.com/PrasadG193/csi-snapshot-session-manager
 
 go 1.19
 

@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	cbtv1alpha1 "github.com/PrasadG193/snapshot-session-access/pkg/api/cbt/v1alpha1"
+	cbtv1alpha1 "github.com/PrasadG193/csi-snapshot-session-manager/pkg/api/cbt/v1alpha1"
 )
 
 var sessionAccessTTL = time.Minute * time.Duration(10)

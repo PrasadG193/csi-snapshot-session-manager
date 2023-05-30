@@ -34,5 +34,5 @@ spec:
 status:
   cabundle: xxxx
   token: xxxxxxxx
-  url: snapshot-session-access.cbt-svc.svc:80
+  url: csi-snapshot-session-manager.cbt-svc.svc:80
 ```

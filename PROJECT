@@ -5,8 +5,8 @@
 domain: storage.k8s.io
 layout:
 - go.kubebuilder.io/v4-alpha
-projectName: snapshot-session-access
-repo: github.com/PrasadG193/snapshot-session-access
+projectName: csi-snapshot-session-manager
+repo: github.com/PrasadG193/csi-snapshot-session-manager
 resources:
 - api:
     crdVersion: v1
@@ -15,7 +15,7 @@ resources:
   domain: storage.k8s.io
   group: cbt
   kind: CSISnapshotSessionAccess
-  path: github.com/PrasadG193/snapshot-session-access/pkg/api/cbt/v1alpha1
+  path: github.com/PrasadG193/csi-snapshot-session-manager/pkg/api/cbt/v1alpha1
   version: v1alpha1
   webhooks:
     validation: true
@@ -26,7 +26,7 @@ resources:
   domain: storage.k8s.io
   group: cbt
   kind: CSISnapshotSessionData
-  path: github.com/PrasadG193/snapshot-session-access/pkg/api/cbt/v1alpha1
+  path: github.com/PrasadG193/csi-snapshot-session-manager/pkg/api/cbt/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -34,6 +34,6 @@ resources:
   domain: storage.k8s.io
   group: cbt
   kind: CSISnapshotSessionService
-  path: github.com/PrasadG193/snapshot-session-access/pkg/api/cbt/v1alpha1
+  path: github.com/PrasadG193/csi-snapshot-session-manager/pkg/api/cbt/v1alpha1
   version: v1alpha1
 version: "3"

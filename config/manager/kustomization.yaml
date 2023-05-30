@@ -4,5 +4,5 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
 - name: controller
-  newName: prasadg193/external-snapshot-session-access
+  newName: prasadg193/external-csi-snapshot-session-manager
   newTag: latest

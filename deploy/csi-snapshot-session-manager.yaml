@@ -1,0 +1,267 @@
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: csi-snapshot-session-manager
+  namespace: csi-snapshot-session-manager
+  labels:
+    app.kubernetes.io/name: namespace
+    app.kubernetes.io/instance: csi-snapshot-session-manager-serviceaccount
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: csi-snapshot-session-manager
+    app.kubernetes.io/part-of: csi-snapshot-session-manager
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/name: role
+    app.kubernetes.io/instance: csi-snapshot-session-manager-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: csi-snapshot-session-manager
+    app.kubernetes.io/part-of: csi-snapshot-session-manager
+  name: csi-snapshot-session-manager-leader-election-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: csi-snapshot-session-manager-role
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: csi-snapshot-session-manager-clusterrole
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: csi-snapshot-session-manager
+    app.kubernetes.io/part-of: csi-snapshot-session-manager
+rules:
+- apiGroups:
+  - cbt.storage.k8s.io
+  resources:
+  - csisnapshotsessionaccesses
+  - csisnapshotsessionservices
+  - csisnapshotsessiondata
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cbt.storage.k8s.io
+  resources:
+  - csisnapshotsessionaccesses/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - cbt.storage.k8s.io
+  resources:
+  - csisnapshotsessionaccesses/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshots
+  - volumesnapshotcontents
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrolebinding
+    app.kubernetes.io/instance: csi-snapshot-session-manager-clusterrolebinding
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: csi-snapshot-session-manager
+    app.kubernetes.io/part-of: csi-snapshot-session-manager
+  name: csi-snapshot-session-manager-crb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: csi-snapshot-session-manager-role
+subjects:
+- kind: ServiceAccount
+  name: csi-snapshot-session-manager
+  namespace: csi-snapshot-session-manager
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: rolebinding
+    app.kubernetes.io/instance: csi-snapshot-session-manager-rolebinding
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: csi-snapshot-session-manager
+    app.kubernetes.io/part-of: csi-snapshot-session-manager
+  name: csi-snapshot-session-manager-rb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: csi-snapshot-session-manager-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: csi-snapshot-session-manager
+  namespace: csi-snapshot-session-manager
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: csi-hostpathplugin
+  namespace: csi-snapshot-session-manager
+  labels:
+    app.kubernetes.io/name: deployment
+    app.kubernetes.io/instance: csi-snapshot-session-manager-deployment
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/created-by: csi-snapshot-session-manager
+    app.kubernetes.io/part-of: csi-snapshot-session-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: deployment
+      app.kubernetes.io/instance: csi-snapshot-session-manager-deploy
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/created-by: csi-snapshot-session-manager
+      app.kubernetes.io/part-of: csi-snapshot-session-manager
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: deployment
+        app.kubernetes.io/instance: csi-snapshot-session-manager-deploy
+        app.kubernetes.io/component: controller
+        app.kubernetes.io/created-by: csi-snapshot-session-manager
+        app.kubernetes.io/part-of: csi-snapshot-session-manager
+    spec:
+      serviceAccountName: csi-snapshot-session-manager
+      containers:
+        - command:
+          - /manager
+          args:
+          - --leader-elect
+          image: prasadg193/csi-snapshot-session-manager:latest
+          name: csi-snapshot-session-manager
+          volumeMounts:
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: cert
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
+      volumes:
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: csi-snapshot-session-manager-tls-cert
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: csi-snapshot-session-manager/csi-snapshot-session-manager-tls-cert
+  labels:
+    app.kubernetes.io/part-of: cbt-kubebuilder
+  name: csi-snapshot-session-manager-validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: csi-snapshot-session-manager-webhook-service
+      namespace: csi-snapshot-session-manager
+      path: /csisnapshotsessionaccess/validate
+      port: 443
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: csisnapshotsessionaccess.kb.io
+  rules:
+  - apiGroups:
+    - cbt.storage.k8s.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    resources:
+    - csisnapshotsessionaccesses
+    scope: '*'
+  sideEffects: None
+  timeoutSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+  labels:
+    app.kubernetes.io/part-of: csi-snapshot-session-manager
+  name: csi-snapshot-session-manager-webhook-service
+  namespace: csi-snapshot-session-manager
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 9443
+  selector:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/created-by: csi-snapshot-session-manager
+    app.kubernetes.io/part-of: csi-snapshot-session-manager
+  sessionAffinity: None
+  type: ClusterIP

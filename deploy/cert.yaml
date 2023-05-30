@@ -1,0 +1,26 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: csi-snapshot-session-manager-issuer
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: csi-snapshot-session-manager-tls-cert
+spec:
+  secretName: csi-snapshot-session-manager-tls-cert
+  secretTemplate:
+    labels:
+      app.kubernetes.io/instance: hostpath.csi.k8s.io
+      app.kubernetes.io/part-of: csi-driver-host-path
+      app.kubernetes.io/name: csi-hostpathplugin
+      app.kubernetes.io/component: plugin
+  dnsNames:
+    - csi-snapshot-session-manager-webhook-service
+    - csi-snapshot-session-manager-webhook-service.csi-snapshot-session-manager
+    - csi-snapshot-session-manager-webhook-service.csi-snapshot-session-manager.svc
+  issuerRef:
+    name: csi-snapshot-session-manager-issuer
+    kind: Issuer

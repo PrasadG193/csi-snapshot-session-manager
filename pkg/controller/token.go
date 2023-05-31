@@ -10,13 +10,5 @@ const (
 )
 
 func newToken() string {
-	return rand.String(tokenLength)
-}
-
-func generateSnapSessionDataName() string {
-	return SnapSessionDataNameWithToken(newToken())
-}
-
-func SnapSessionDataNameWithToken(token string) string {
-	return ssdPrefix + token
+	return ssdPrefix + rand.String(tokenLength)
 }

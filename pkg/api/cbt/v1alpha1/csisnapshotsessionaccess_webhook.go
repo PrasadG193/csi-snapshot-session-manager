@@ -91,10 +91,12 @@ func (v *CSISnapshotSessionAccessValidator) authorizeUser(ctx context.Context, r
 }
 
 func (v *CSISnapshotSessionAccessValidator) canAccessVolumeSnapshots(ctx context.Context, namespace string, userInfo authnv1.UserInfo, extraValues map[string]authzv1.ExtraValue) (bool, error) {
+	csisnapshotsessionaccesslog.Info("Validating if user can access VolumeSnapshot resources")
 	return v.subjectAccessReview(ctx, namespace, userInfo, extraValues, "get", metav1.GroupVersionResource{Group: "snapshot.storage.k8s.io", Version: "v1", Resource: "volumesnapshots"})
 }
 
 func (v *CSISnapshotSessionAccessValidator) canAccessPVC(ctx context.Context, namespace string, userInfo authnv1.UserInfo, extraValues map[string]authzv1.ExtraValue) (bool, error) {
+	csisnapshotsessionaccesslog.Info("Validating if user can access PersistentVolumeClaim resources")
 	return v.subjectAccessReview(ctx, namespace, userInfo, extraValues, "get", metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "persistentvolumeclaims"})
 }
 
@@ -127,15 +129,26 @@ func (v *CSISnapshotSessionAccessValidator) subjectAccessReview(ctx context.Cont
 }
 
 func (v *CSISnapshotSessionAccessValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	csisnapshotsessionaccesslog.Info(fmt.Sprintf("debug: webhook req object Raw: %s", string(req.Object.Raw)))
-	csisnapshotsessionaccesslog.Info(fmt.Sprintf("debug: userinfo: %#v\n", req.UserInfo))
-	vsd := &CSISnapshotSessionAccess{}
-	err := v.decoder.Decode(req, vsd)
+	csisnapshotsessionaccesslog.Info(fmt.Sprintf("Validating webhook handler received request: %s", string(req.Object.Raw)))
+	csisnapshotsessionaccesslog.Info(fmt.Sprintf("Validating webhook request userinfo: %#v\n", req.UserInfo))
+	ssa := &CSISnapshotSessionAccess{}
+	err := v.decoder.Decode(req, ssa)
 	if err != nil {
 		csisnapshotsessionaccesslog.Error(err, "Failed to decode request object")
 		return admission.Errored(http.StatusBadRequest, err)
 	}
-	//TODO: Check for empty status of the CR
+	// Check for empty status of the CR
+	if ssa.Status.SessionState != "" {
+		return admission.Response{
+			AdmissionResponse: admissionv1.AdmissionResponse{
+				Allowed: false,
+				Result: &metav1.Status{
+					Status: "Failure",
+					Reason: "Resource status.sessionState is not empty",
+				},
+			},
+		}
+	}
 
 	// Perform authorization checks
 	authz, err := v.authorizeUser(ctx, req)
@@ -150,14 +163,7 @@ func (v *CSISnapshotSessionAccessValidator) Handle(ctx context.Context, req admi
 			},
 		}
 	}
-	//vsd.Status.SessionState = SessionStateTypePending
-	//marshaledObject, err := json.Marshal(runtime.Object(vsd))
-	//if err != nil {
-	//	return admission.Errored(http.StatusBadRequest, err)
-	//}
-	//patched := admission.PatchResponseFromRaw(req.Object.Raw, marshaledObject)
-	//csisnapshotsessionaccesslog.Info(fmt.Sprintf("debug: Setting CSISnapshotSessionAccess %s state to pending", vsd.Name))
-	csisnapshotsessionaccesslog.Info("debug: all validation checks passed!")
+	csisnapshotsessionaccesslog.Info("Validating webhook handler: all validation checks passed!")
 	return admission.Response{
 		AdmissionResponse: admissionv1.AdmissionResponse{
 			Allowed: true,

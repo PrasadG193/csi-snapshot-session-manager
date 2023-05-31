@@ -77,6 +77,9 @@ func (r *CSISnapshotSessionAccessReconciler) Reconcile(ctx context.Context, req 
 		return reconcile.Result{}, err
 	}
 
+	if obj.Status.SessionState == cbtv1alpha1.SessionStateTypeFailed {
+		return reconcile.Result{}, nil
+	}
 	// Set initial expiry time and retry
 	if obj.Status.SessionState != cbtv1alpha1.SessionStateTypePending &&
 		obj.Status.ExpiryTime == nil {
@@ -85,7 +88,7 @@ func (r *CSISnapshotSessionAccessReconciler) Reconcile(ctx context.Context, req 
 			SessionState: cbtv1alpha1.SessionStateTypePending,
 			ExpiryTime:   &expiry,
 		}
-		logger.Info("debug:: setting pending")
+		logger.Info("Setting initial state to Pending")
 		err = r.Update(ctx, obj)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -93,23 +96,20 @@ func (r *CSISnapshotSessionAccessReconciler) Reconcile(ctx context.Context, req 
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	if obj.Status.SessionState == cbtv1alpha1.SessionStateTypeFailed {
-		return reconcile.Result{}, nil
-	}
 	if obj.Status.SessionState == cbtv1alpha1.SessionStateTypeReady {
 		// Return if expired and pending
 		// Set object state to Failed/Expired
 		now := metav1.Now()
 		if obj.Status.ExpiryTime.Before(&now) {
-			logger.Info("debug:: setting expired")
+			logger.Info("Session expired, setting state as failed")
 			obj.Status.SessionState = cbtv1alpha1.SessionStateTypeFailed
 			err = r.Update(ctx, obj)
-			return reconcile.Result{}, err
+			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, nil
 	}
 
-	logger.Info("debug:: handling event")
+	logger.Info("Handling resource event")
 	return ctrl.Result{}, r.handleEvents(ctx, obj, logger)
 }
 
@@ -156,25 +156,19 @@ func (r *CSISnapshotSessionAccessReconciler) handleEvents(
 		SessionURL:   sss.Spec.Address,
 		CACert:       sss.Spec.CACert,
 	}
-	logger.Info("debug:: updating status")
-	err = r.Update(ctx, obj)
-	if err != nil {
-		return err
-	}
-	logger.Info(fmt.Sprintf("created CSISnapshotSessionAccess: %s", obj.GetName()))
-	return nil
+	logger.Info("Setting resource status to Ready")
+	return r.Update(ctx, obj)
 }
 
 func (r *CSISnapshotSessionAccessReconciler) storeSessionData(ctx context.Context, logger logr.Logger, namespace, token, driver string, vsInfoMap map[string]vsInfo) (*cbtv1alpha1.CSISnapshotSessionData, error) {
 	expiry := metav1.NewTime(time.Now().Add(sessionAccessTTL))
 	ssd := &cbtv1alpha1.CSISnapshotSessionData{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      SnapSessionDataNameWithToken(token),
+			Name:      token,
 			Namespace: namespace,
 		},
 		Spec: cbtv1alpha1.CSISnapshotSessionDataSpec{
 			Expiry: &expiry,
-			// Considering all snapshots point to the same volume, we will just add single element to the volume array
 		},
 	}
 	for vs, info := range vsInfoMap {
@@ -185,7 +179,7 @@ func (r *CSISnapshotSessionAccessReconciler) storeSessionData(ctx context.Contex
 		})
 	}
 	err := r.Create(ctx, ssd)
-	logger.Info(fmt.Sprintf("created CSISnapshotSessionData: %s/%s", ssd.GetNamespace(), ssd.GetName()))
+	logger.Info(fmt.Sprintf("Created CSISnapshotSessionData: %s/%s", ssd.GetNamespace(), ssd.GetName()))
 	return ssd, err
 }
 
@@ -214,8 +208,8 @@ func (r *CSISnapshotSessionAccessReconciler) volumeSnapshotsInfo(ctx context.Con
 }
 
 func (r *CSISnapshotSessionAccessReconciler) findSnapSessionService(ctx context.Context, logger logr.Logger, driver string) (*cbtv1alpha1.CSISnapshotSessionService, error) {
+	logger.Info(fmt.Sprintf("Search CSISnapshotSessionService object for driver: %s", driver))
 	sssList := &cbtv1alpha1.CSISnapshotSessionServiceList{}
-
 	sssReq, err := labels.NewRequirement("cbt.storage.k8s.io/driver", selection.Equals, []string{driver})
 	if err != nil {
 		return nil, err
@@ -229,6 +223,6 @@ func (r *CSISnapshotSessionAccessReconciler) findSnapSessionService(ctx context.
 		return nil, nil
 	}
 	// TODO: Handle multiple obj
-	logger.Info(fmt.Sprintf("found CSISnapshotSessionService object %s for driver: %s", sssList.Items[0].GetName(), driver))
+	logger.Info(fmt.Sprintf("Found CSISnapshotSessionService object %s for driver: %s", sssList.Items[0].GetName(), driver))
 	return &sssList.Items[0], nil
 }

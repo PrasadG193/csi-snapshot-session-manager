@@ -56,10 +56,10 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: csi-snapshot-session-manager-role
+  name: csi-snapshot-session-manager-cluster-role
   labels:
     app.kubernetes.io/name: clusterrole
-    app.kubernetes.io/instance: csi-snapshot-session-manager-clusterrole
+    app.kubernetes.io/instance: csi-snapshot-session-manager-cluster-role
     app.kubernetes.io/component: rbac
     app.kubernetes.io/created-by: csi-snapshot-session-manager
     app.kubernetes.io/part-of: csi-snapshot-session-manager
@@ -78,20 +78,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - cbt.storage.k8s.io
-  resources:
-  - csisnapshotsessionaccesses/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - cbt.storage.k8s.io
-  resources:
-  - csisnapshotsessionaccesses/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - authorization.k8s.io
   resources:
@@ -117,11 +103,11 @@ metadata:
     app.kubernetes.io/component: rbac
     app.kubernetes.io/created-by: csi-snapshot-session-manager
     app.kubernetes.io/part-of: csi-snapshot-session-manager
-  name: csi-snapshot-session-manager-crb
+  name: csi-snapshot-session-manager-cluster-role-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: csi-snapshot-session-manager-role
+  name: csi-snapshot-session-manager-cluster-role
 subjects:
 - kind: ServiceAccount
   name: csi-snapshot-session-manager
@@ -136,7 +122,7 @@ metadata:
     app.kubernetes.io/component: rbac
     app.kubernetes.io/created-by: csi-snapshot-session-manager
     app.kubernetes.io/part-of: csi-snapshot-session-manager
-  name: csi-snapshot-session-manager-rb
+  name: csi-snapshot-session-manager-role-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -145,7 +131,6 @@ subjects:
 - kind: ServiceAccount
   name: csi-snapshot-session-manager
   namespace: csi-snapshot-session-manager
-
 ---
 kind: Deployment
 apiVersion: apps/v1
